@@ -10,6 +10,7 @@ import { ConfigService } from '@nestjs/config';
 import { createHash } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateClaimDto } from './dto/create-claim.dto';
+import { ClaimReceiptDto, SendReceiptShareDto } from './dto/claim-receipt.dto';
 import { ClaimStatus } from '@prisma/client';
 import {
   OnchainAdapter,
@@ -270,20 +271,29 @@ export class ClaimsService {
    * In production, this should be retrieved from the claim record
    * For now, uses a default or derives from campaign metadata
    */
-  private getTokenAddressForClaim(claim: any): string {
+  private getTokenAddressForClaim(
+    claim: {
+      metadata?: Record<string, unknown> | null;
+      campaign?: { metadata?: Record<string, unknown> | null } | null;
+    } & Record<string, unknown>,
+  ): string {
     // Default USDC on Stellar testnet
     // In production, this should come from the claim record or campaign config
     const defaultTokenAddress =
       'GATEMHCCKCY67ZUCKTROYN24ZYT5GK4EQZ5LKG3FZTSZ3NYNEJBBENSN';
 
     // If claim has tokenAddress in metadata, use it
-    if (claim.metadata?.tokenAddress) {
-      return claim.metadata.tokenAddress;
+    const claimMetadata = claim.metadata as Record<string, unknown> | undefined;
+    if (claimMetadata?.tokenAddress) {
+      return claimMetadata.tokenAddress as string;
     }
 
     // If campaign has tokenAddress in metadata, use it
-    if (claim.campaign?.metadata?.tokenAddress) {
-      return claim.campaign.metadata.tokenAddress;
+    const campaignMetadata = claim.campaign?.metadata as
+      | Record<string, unknown>
+      | undefined;
+    if (campaignMetadata?.tokenAddress) {
+      return campaignMetadata.tokenAddress as string;
     }
 
     return defaultTokenAddress;
@@ -344,7 +354,7 @@ export class ClaimsService {
     entity: string,
     entityId: string,
     action: string,
-    metadata?: any,
+    metadata?: Record<string, unknown>,
   ) {
     // Stub: In production, this would log to audit table or external system
     console.log(`Audit: ${entity} ${entityId} ${action}`, metadata);
@@ -353,7 +363,7 @@ export class ClaimsService {
   /**
    * Generate a receipt DTO for a claim
    */
-  async getReceipt(id: string) {
+  async getReceipt(id: string): Promise<ClaimReceiptDto> {
     const claim = await this.findOne(id);
 
     if (!claim) {
@@ -379,8 +389,13 @@ export class ClaimsService {
    */
   async shareReceipt(
     id: string,
-    shareDto: any, // SendReceiptShareDto type
-  ) {
+    shareDto: SendReceiptShareDto,
+  ): Promise<{
+    receiptData: string;
+    mimeType: string;
+    filename: string;
+    text: string;
+  }> {
     const receipt = await this.getReceipt(id);
 
     // Generate receipt text
@@ -394,20 +409,19 @@ export class ClaimsService {
 
     // Handle different sharing channels
     if (shareDto.channel === 'email' && shareDto.emailAddresses?.length) {
-      await this.sendReceiptViaEmail(
+      this.sendReceiptViaEmail(
         shareDto.emailAddresses,
         receipt,
         receiptText,
-        shareDto.message,
+        shareDto.message ?? undefined,
       );
     } else if (shareDto.channel === 'sms' && shareDto.phoneNumbers?.length) {
-      await this.sendReceiptViaSMS(
+      this.sendReceiptViaSMS(
         shareDto.phoneNumbers,
         receipt,
-        shareDto.message,
+        shareDto.message ?? undefined,
       );
     }
-
     // Audit log the share action
     void this.auditLog('claim', id, 'receipt_shared', {
       channel: shareDto.channel,
@@ -426,7 +440,7 @@ export class ClaimsService {
   /**
    * Generate formatted receipt text
    */
-  private generateReceiptText(receipt: any): string {
+  private generateReceiptText(receipt: ClaimReceiptDto): string {
     const lines = [
       '═══════════════════════════════════════',
       '         CLAIM RECEIPT',
@@ -460,12 +474,12 @@ export class ClaimsService {
    * Send receipt via email
    * Stub implementation - replace with actual email service
    */
-  private async sendReceiptViaEmail(
+  private sendReceiptViaEmail(
     emailAddresses: string[],
-    receipt: any,
+    receipt: ClaimReceiptDto,
     receiptText: string,
-    message?: string,
-  ) {
+    _message?: string,
+  ): void {
     this.logger.log(
       `Sending receipt via email to ${emailAddresses.length} recipient(s)`,
       {
@@ -488,11 +502,11 @@ export class ClaimsService {
    * Send receipt via SMS
    * Stub implementation - replace with actual SMS service
    */
-  private async sendReceiptViaSMS(
+  private sendReceiptViaSMS(
     phoneNumbers: string[],
-    receipt: any,
-    message?: string,
-  ) {
+    receipt: ClaimReceiptDto,
+    _message?: string,
+  ): void {
     this.logger.log(
       `Sending receipt via SMS to ${phoneNumbers.length} recipient(s)`,
       {
