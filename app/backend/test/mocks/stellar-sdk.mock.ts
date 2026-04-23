@@ -18,11 +18,14 @@ export const mockStellarSDK = {
   })),
   Keypair: {
     fromSecret: jest.fn().mockReturnValue({
-      publicKey: () => 'GBXGQJWVLWOYHFLVTKWV5FGHA3JYYV3A7JQKNO6TCTSVL4K3JDLDZBPK',
-      secret: () => 'SXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
+      publicKey: () =>
+        'GBXGQJWVLWOYHFLVTKWV5FGHA3JYYV3A7JQKNO6TCTSVL4K3JDLDZBPK',
+      secret: () =>
+        'SXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
     }),
     random: jest.fn().mockReturnValue({
-      publicKey: () => 'GBXGQJWVLWOYHFLVTKWV5FGHA3JYYV3A7JQKNO6TCTSVL4K3JDLDZBPK',
+      publicKey: () =>
+        'GBXGQJWVLWOYHFLVTKWV5FGHA3JYYV3A7JQKNO6TCTSVL4K3JDLDZBPK',
     }),
   },
   Networks: {
@@ -49,7 +52,7 @@ export const mockStellarSDK = {
       startingBalance: '1000',
     }),
   },
-  TransactionBuilder: jest.fn().mockImplementation((account, options) => ({
+  TransactionBuilder: jest.fn().mockImplementation((_account, _options) => ({
     addOperation: jest.fn().mockReturnThis(),
     setTimeout: jest.fn().mockReturnThis(),
     build: jest.fn().mockReturnValue({

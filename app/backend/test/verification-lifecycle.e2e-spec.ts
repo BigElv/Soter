@@ -2,14 +2,15 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
-
-const request = require('supertest');
+import request from 'supertest';
 
 // Mock external services
 jest.mock('@stellar/stellar-sdk', () => ({
   Server: jest.fn().mockImplementation(() => ({
     loadAccount: jest.fn().mockResolvedValue({ id: 'test', sequence: '0' }),
-    submitTransaction: jest.fn().mockResolvedValue({ hash: '0x123', status: 'SUCCESS' }),
+    submitTransaction: jest
+      .fn()
+      .mockResolvedValue({ hash: '0x123', status: 'SUCCESS' }),
   })),
   Keypair: {
     random: jest.fn().mockReturnValue({ publicKey: () => 'test-key' }),
@@ -29,7 +30,9 @@ jest.mock('openai', () => ({
     chat: {
       completions: {
         create: jest.fn().mockResolvedValue({
-          choices: [{ message: { content: JSON.stringify({ verified: true }) } }],
+          choices: [
+            { message: { content: JSON.stringify({ verified: true }) } },
+          ],
         }),
       },
     },
@@ -42,10 +45,12 @@ describe('Verification Lifecycle E2E', () => {
   let moduleFixture: TestingModule;
   let validApiKey: string;
   let testCampaignId: string;
-  let createdClaimIds: string[] = [];
+  const createdClaimIds: string[] = [];
 
-  const validStellarAddress = 'GBXGQJWVLWOYHFLVTKWV5FGHA3JYYV3A7JQKNO6TCTSVL4K3JDLDZBPK';
-  const validTokenAddress = 'GATEMHCCKCY67ZUCKTROYN24ZYT5GK4EQZ5LKG3FZTSZ3NYNEJBBENSN';
+  const validStellarAddress =
+    'GBXGQJWVLWOYHFLVTKWV5FGHA3JYYV3A7JQKNO6TCTSVL4K3JDLDZBPK';
+  const validTokenAddress =
+    'GATEMHCCKCY67ZUCKTROYN24ZYT5GK4EQZ5LKG3FZTSZ3NYNEJBBENSN';
 
   beforeAll(async () => {
     moduleFixture = await Test.createTestingModule({
@@ -75,11 +80,15 @@ describe('Verification Lifecycle E2E', () => {
     // Delete claims and related records
     for (const claimId of createdClaimIds.reverse()) {
       try {
-        await prismaService.auditLog.deleteMany({ where: { entityId: claimId, entity: 'Claim' } });
-        await prismaService.verificationSession.deleteMany({ where: { claimId } });
+        await prismaService.auditLog.deleteMany({
+          where: { entityId: claimId, entity: 'Claim' },
+        });
+        await prismaService.verificationSession.deleteMany({
+          where: { claimId },
+        });
         await prismaService.claim.delete({ where: { id: claimId } });
-      } catch (error) {
-        // Ignore cleanup errors
+      } catch (_error) {
+        console.error(`Error cleaning up claim ${claimId}:`, _error);
       }
     }
     // Then delete campaign
@@ -87,7 +96,7 @@ describe('Verification Lifecycle E2E', () => {
       try {
         await prismaService.campaign.delete({ where: { id: testCampaignId } });
       } catch (error) {
-        console.log('Note: Could not delete campaign (may have been already deleted)');
+        console.error(`Error cleaning up campaign ${testCampaignId}:`, error);
       }
     }
     await app.close();
@@ -109,7 +118,7 @@ describe('Verification Lifecycle E2E', () => {
         .get('/claims')
         .set('X-API-Key', validApiKey)
         .expect(200);
-      
+
       expect(Array.isArray(response.body)).toBe(true);
       console.log('✅ Valid API key accepted');
     });
@@ -134,24 +143,26 @@ describe('Verification Lifecycle E2E', () => {
 
       expect(response.body).toHaveProperty('id');
       expect(String(response.body.amount)).toBe(String(1000));
-      
+
       createdClaimId = response.body.id;
       createdClaimIds.push(createdClaimId);
-      
+
       // Verify database state
-      const dbClaim = await prismaService.claim.findUnique({ where: { id: createdClaimId } });
+      const dbClaim = await prismaService.claim.findUnique({
+        where: { id: createdClaimId },
+      });
       expect(dbClaim).toBeDefined();
       expect(dbClaim?.status).toBe('requested');
-      
+
       // Verify audit log was created
       const auditLog = await prismaService.auditLog.findFirst({
-        where: { 
+        where: {
           entityId: createdClaimId,
           entity: 'Claim',
         },
       });
       expect(auditLog).toBeDefined();
-      
+
       console.log(`✅ Claim created: ${createdClaimId}`);
     });
 
@@ -197,34 +208,38 @@ describe('Verification Lifecycle E2E', () => {
 
       expect(verifyResponse.body).toHaveProperty('id');
       expect(verifyResponse.body.status).toBe('verified');
-      
+
       // Verify database state after verification
-      const dbClaim = await prismaService.claim.findUnique({ where: { id: testClaimId } });
+      const dbClaim = await prismaService.claim.findUnique({
+        where: { id: testClaimId },
+      });
       expect(dbClaim?.status).toBe('verified');
-      
+
       // Verify audit log for verification was created
       const auditLog = await prismaService.auditLog.findFirst({
-        where: { 
+        where: {
           entityId: testClaimId,
           entity: 'Claim',
         },
       });
       expect(auditLog).toBeDefined();
-      
-      console.log(`✅ Verification completed, claim status: ${verifyResponse.body.status}`);
+
+      console.log(
+        `✅ Verification completed, claim status: ${verifyResponse.body.status}`,
+      );
     });
   });
 
   describe('Error Handling', () => {
     it('should handle non-existent claim', async () => {
       const nonExistentId = '00000000-0000-0000-0000-000000000000';
-      
+
       await request(app.getHttpServer())
         .post(`/claims/${nonExistentId}/verify`)
         .set('X-API-Key', validApiKey)
         .send({ method: 'humanitarian' })
         .expect(404);
-      
+
       console.log('✅ Not found error handled correctly');
     });
 
@@ -233,7 +248,7 @@ describe('Verification Lifecycle E2E', () => {
         .get('/claims')
         .set('X-API-Key', 'invalid-key-12345')
         .expect(401);
-      
+
       console.log('✅ Invalid API key rejected');
     });
   });
@@ -247,8 +262,8 @@ describe('Verification Lifecycle E2E', () => {
 
   describe('Onchain Disbursement', () => {
     let disbursementClaimId: string;
-    let disbursementPackageId: string;
-    let transactionHash: string;
+    let _disbursementPackageId: string;
+    let _transactionHash: string;
 
     it('should create and verify a claim for disbursement test', async () => {
       // Create claim
@@ -267,17 +282,18 @@ describe('Verification Lifecycle E2E', () => {
 
       disbursementClaimId = claimResponse.body.id;
       createdClaimIds.push(disbursementClaimId);
-      
+
       // Verify the claim
       await request(app.getHttpServer())
         .post(`/claims/${disbursementClaimId}/verify`)
         .set('X-API-Key', validApiKey)
         .send({ method: 'humanitarian' })
         .expect(201);
-      
-      console.log(`✅ Verified claim created for disbursement: ${disbursementClaimId}`);
-    });
 
+      console.log(
+        `✅ Verified claim created for disbursement: ${disbursementClaimId}`,
+      );
+    });
   });
 
   describe('Verification Flow', () => {
@@ -312,14 +328,16 @@ describe('Verification Lifecycle E2E', () => {
       // The response is the updated claim object
       expect(verifyResponse.body).toHaveProperty('id');
       expect(verifyResponse.body.status).toBe('verified');
-      console.log(`✅ Verification completed, claim status: ${verifyResponse.body.status}`);
+      console.log(
+        `✅ Verification completed, claim status: ${verifyResponse.body.status}`,
+      );
     });
   });
 
   // ========== NEW TEST: Onchain Package Create ==========
   describe('Onchain Package Creation', () => {
     let verifiedClaimId: string;
-    let aidPackageId: string;
+    let _aidPackageId: string;
 
     it('should create a verified claim for package testing', async () => {
       // Create a claim
@@ -338,18 +356,17 @@ describe('Verification Lifecycle E2E', () => {
 
       verifiedClaimId = claimResponse.body.id;
       createdClaimIds.push(verifiedClaimId);
-      
+
       // Verify the claim
       await request(app.getHttpServer())
         .post(`/claims/${verifiedClaimId}/verify`)
         .set('X-API-Key', validApiKey)
         .send({ method: 'humanitarian' })
         .expect(201);
-      
-      console.log(`✅ Verified claim created for package test: ${verifiedClaimId}`);
-    });
 
-    
+      console.log(
+        `✅ Verified claim created for package test: ${verifiedClaimId}`,
+      );
+    });
   });
 });
-

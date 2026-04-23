@@ -78,12 +78,11 @@ import { AidEscrowModule } from './onchain/aid-escrow.module';
     AidEscrowModule,
     ThrottlerModule.forRoot([
       {
-        ttl: 60000,       // 60 seconds window
-        limit: 20,     // default: 20 req/min
+        ttl: 60000, // 60 seconds window
+        limit: 20, // default: 20 req/min
       },
     ]),
   ],
-  
 
   controllers: [AppController],
   providers: [
@@ -104,7 +103,7 @@ import { AidEscrowModule } from './onchain/aid-escrow.module';
       provide: APP_INTERCEPTOR,
       useClass: LoggingInterceptor,
     },
-     {
+    {
       provide: APP_GUARD,
       useClass: ThrottlerGuard, // rate-limiting guard runs after auth and role checks to avoid unnecessary counting of unauthenticated/unauthorized requests
     },

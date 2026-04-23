@@ -22,11 +22,14 @@ export const mockStellarSDK = {
   })),
   Keypair: {
     fromSecret: jest.fn().mockReturnValue({
-      publicKey: () => 'GBXGQJWVLWOYHFLVTKWV5FGHA3JYYV3A7JQKNO6TCTSVL4K3JDLDZBPK',
-      secret: () => 'SXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
+      publicKey: () =>
+        'GBXGQJWVLWOYHFLVTKWV5FGHA3JYYV3A7JQKNO6TCTSVL4K3JDLDZBPK',
+      secret: () =>
+        'SXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
     }),
     random: jest.fn().mockReturnValue({
-      publicKey: () => 'GBXGQJWVLWOYHFLVTKWV5FGHA3JYYV3A7JQKNO6TCTSVL4K3JDLDZBPK',
+      publicKey: () =>
+        'GBXGQJWVLWOYHFLVTKWV5FGHA3JYYV3A7JQKNO6TCTSVL4K3JDLDZBPK',
     }),
   },
   Networks: {
@@ -53,7 +56,7 @@ export const mockStellarSDK = {
       startingBalance: '1000',
     }),
   },
-  TransactionBuilder: jest.fn().mockImplementation((account, options) => ({
+  TransactionBuilder: jest.fn().mockImplementation((_account, _options) => ({
     addOperation: jest.fn().mockReturnThis(),
     setTimeout: jest.fn().mockReturnThis(),
     build: jest.fn().mockReturnValue({
@@ -95,11 +98,13 @@ export const mockOpenAI = {
 export const mockSorobanAdapter = {
   deployContract: jest.fn().mockResolvedValue({
     contractId: 'CA3D5KRY6BX7ZRXK4B7VQZXFUDQC3JYJQKNO6TCTSVL4K3JDLDZBPK',
-    transactionHash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+    transactionHash:
+      '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
   }),
   invokeContract: jest.fn().mockResolvedValue({
     result: 'success',
-    transactionHash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+    transactionHash:
+      '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
   }),
   queryContract: jest.fn().mockResolvedValue({
     status: 'active',

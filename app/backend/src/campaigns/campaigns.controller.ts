@@ -58,7 +58,7 @@ export class CampaignsController {
     const campaign = await this.campaigns.create(dto, req.user?.ngoId);
     return ApiResponseDto.ok(campaign, 'Campaigns created successfully');
   }
-  
+
   @Throttle({ default: { ttl: 60000, limit: 10 } }) // Limit to 10 requests per minute for this endpoint
   @Get()
   @ApiOperation({
