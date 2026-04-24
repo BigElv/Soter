@@ -11,12 +11,20 @@ import { useTheme } from '../theme/ThemeContext';
 import { AppColors } from '../theme/useAppTheme';
 import { useBiometric } from '../contexts/BiometricContext';
 import { useNotification } from '../contexts/NotificationContext';
+import { useSaverMode } from '../contexts/SaverModeContext';
 
 export const SettingsScreen: React.FC = () => {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { biometricEnabled, biometricSupported, toggleBiometric } = useBiometric();
   const { permissionGranted, requestPermission } = useNotification();
+  const {
+    active: saverModeActive,
+    source: saverModeSource,
+    autoDetectEnabled,
+    toggleManual,
+    toggleAutoDetect,
+  } = useSaverMode();
 
   const handleNotificationToggle = async (value: boolean) => {
     if (value) {
@@ -128,6 +136,75 @@ export const SettingsScreen: React.FC = () => {
           <Switch
             value={permissionGranted}
             onValueChange={handleNotificationToggle}
+            trackColor={{ false: colors.border, true: colors.brand.primary }}
+            thumbColor="#FFFFFF"
+            importantForAccessibility="no-hide-descendants"
+            accessibilityElementsHidden
+          />
+        </View>
+
+        <Text
+          style={styles.sectionHeader}
+          accessibilityRole="header"
+        >
+          Data Saver
+        </Text>
+
+        {/* Saver Mode manual toggle */}
+        <View
+          style={styles.row}
+          accessible
+          accessibilityRole="switch"
+          accessibilityLabel="Saver Mode"
+          accessibilityHint="Reduce data usage by limiting polling, media previews, and background refresh"
+          accessibilityValue={{ text: saverModeActive ? 'on' : 'off' }}
+          accessibilityState={{ checked: saverModeActive }}
+          onAccessibilityTap={() => void toggleManual(!saverModeActive)}
+        >
+          <View style={styles.rowText}>
+            <Text style={styles.rowTitle}>Saver Mode</Text>
+            <Text style={styles.rowSubtitle}>
+              Reduce data usage by limiting refresh, media, and background sync
+            </Text>
+          </View>
+          <Switch
+            value={saverModeActive}
+            onValueChange={(v) => void toggleManual(v)}
+            trackColor={{ false: colors.border, true: colors.brand.primary }}
+            thumbColor="#FFFFFF"
+            importantForAccessibility="no-hide-descendants"
+            accessibilityElementsHidden
+          />
+        </View>
+
+        {saverModeActive && (
+          <Text style={styles.hint} accessibilityRole="alert">
+            {saverModeSource === 'auto'
+              ? 'Auto-enabled: slow or metered connection detected.'
+              : 'Manually enabled. Refresh, media previews, and background sync are reduced.'}
+          </Text>
+        )}
+
+        {/* Auto-detect toggle */}
+        <View
+          style={styles.row}
+          accessible
+          accessibilityRole="switch"
+          accessibilityLabel="Auto-detect poor connections"
+          accessibilityHint="Automatically enable Saver Mode on slow or metered connections"
+          accessibilityValue={{ text: autoDetectEnabled ? 'on' : 'off' }}
+          accessibilityState={{ checked: autoDetectEnabled }}
+          onAccessibilityTap={() => void toggleAutoDetect(!autoDetectEnabled)}
+        >
+          <View style={styles.rowText}>
+            <Text style={styles.rowTitle}>Auto-detect</Text>
+            <Text style={styles.rowSubtitle}>
+              Automatically enable Saver Mode on slow or metered connections
+            </Text>
+          </View>
+          <Switch
+            value={autoDetectEnabled}
+            onValueChange={(v) => void toggleAutoDetect(v)}
             trackColor={{ false: colors.border, true: colors.brand.primary }}
             thumbColor="#FFFFFF"
             importantForAccessibility="no-hide-descendants"

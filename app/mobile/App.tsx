@@ -13,6 +13,7 @@ import {
   NotificationProvider,
   useNotification,
 } from './src/contexts/NotificationContext';
+import { SaverModeProvider } from './src/contexts/SaverModeContext';
 
 // ---------------------------------------------------------------------------
 // Deep-link configuration for React Navigation
@@ -96,9 +97,11 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <ThemeProvider>
-        <NotificationProvider>
-          <AppInner />
-        </NotificationProvider>
+        <SaverModeProvider>
+          <NotificationProvider>
+            <AppInner />
+          </NotificationProvider>
+        </SaverModeProvider>
       </ThemeProvider>
     </SafeAreaProvider>
   );
