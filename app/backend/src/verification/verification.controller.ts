@@ -9,6 +9,7 @@ import {
   HttpCode,
   Request,
 } from '@nestjs/common';
+import { Request as ExpressRequest } from 'express';
 import {
   ApiTags,
   ApiOperation,
@@ -404,7 +405,7 @@ export class VerificationController {
   addNote(
     @Param('id') id: string,
     @Body() dto: CreateInternalNoteDto,
-    @Request() req: any,
+    @Request() req: ExpressRequest,
   ) {
     const authorId = req.user?.apiKeyId || req.user?.authType || 'system';
     return this.internalNotesService.createNote(

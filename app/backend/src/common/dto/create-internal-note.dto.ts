@@ -4,7 +4,8 @@ import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
 export class CreateInternalNoteDto {
   @ApiProperty({
     description: 'The content of the internal note.',
-    example: 'Investigation shows that the recipient has provided valid evidence.',
+    example:
+      'Investigation shows that the recipient has provided valid evidence.',
   })
   @IsString()
   @IsNotEmpty()

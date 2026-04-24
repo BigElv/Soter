@@ -19,7 +19,9 @@ export class InternalNotesService {
     authorId: string,
     dto: CreateInternalNoteDto,
   ): Promise<InternalNoteResponseDto> {
-    this.logger.log(`Creating internal note for ${entityType} ${entityId} by ${authorId}`);
+    this.logger.log(
+      `Creating internal note for ${entityType} ${entityId} by ${authorId}`,
+    );
 
     const note = await this.prisma.internalNote.create({
       data: {

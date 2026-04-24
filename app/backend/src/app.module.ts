@@ -36,6 +36,7 @@ import { AidEscrowModule } from './onchain/aid-escrow.module';
 import { ApiKeysModule } from './api-keys/api-keys.module';
 import { SessionModule } from './session/session.module';
 import { CommonServicesModule } from './common/services/common-services.module';
+import { EvidenceModule } from './evidence/evidence.module';
 
 @Module({
   imports: [
@@ -82,6 +83,7 @@ import { CommonServicesModule } from './common/services/common-services.module';
     ApiKeysModule,
     SessionModule,
     CommonServicesModule,
+    EvidenceModule,
     ThrottlerModule.forRoot([
       {
         ttl: 60000, // 60 seconds window
