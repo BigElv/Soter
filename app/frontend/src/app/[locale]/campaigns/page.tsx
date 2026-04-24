@@ -245,7 +245,7 @@ export default function CampaignsPage() {
                 Error fetching campaigns: {(error as Error)?.message}
               </p>
             )}
-            {!isLoading && !isError && activeCampaigns.length === 0 && (
+            {!isLoading && !isError && campaigns.length === 0 && (
               <AppEmptyState
                 compact
                 eyebrow="No Campaigns Yet"
@@ -260,6 +260,8 @@ export default function CampaignsPage() {
                   { href: '/help', label: 'View help', icon: 'docs', variant: 'secondary' },
                 ]}
               />
+            )}
+            {!isLoading && !isError && campaigns.length > 0 && activeCampaigns.length === 0 && (
               <p className="text-gray-500">No campaigns match the current filter.</p>
             )}
 
