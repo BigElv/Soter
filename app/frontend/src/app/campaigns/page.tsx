@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
+import { AppEmptyState } from '@/components/empty-state/AppEmptyState';
 import { useCampaigns, useCreateCampaign, useUpdateCampaign } from '@/hooks/useCampaigns';
 import type { CampaignStatus } from '@/types/campaign';
 import { ExportControls } from '@/components/dashboard/ExportControls';
@@ -32,6 +33,14 @@ export default function CampaignsPage() {
     () => campaigns.filter(campaign => campaign.status !== 'archived'),
     [campaigns]
   );
+
+  const loadSampleCampaign = () => {
+    setName('Sample Emergency Cash Transfer');
+    setBudget('15000');
+    setToken('USDC');
+    setExpiry('2026-12-31');
+    setFormMessage('Sample campaign values loaded. Review and create when ready.');
+  };
 
   if (!ALLOWED_ROLES.includes(userRole)) {
     return (
@@ -162,6 +171,13 @@ export default function CampaignsPage() {
               >
                 {createCampaign.isPending ? 'Creating…' : 'Create campaign'}
               </button>
+              <button
+                type="button"
+                onClick={loadSampleCampaign}
+                className="ml-2 inline-flex items-center justify-center rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+              >
+                Load sample values
+              </button>
             </form>
           </section>
 
@@ -174,7 +190,20 @@ export default function CampaignsPage() {
             {isLoading && <p>Loading campaigns…</p>}
             {isError && <p className="text-red-500">Error fetching campaigns: {(error as Error)?.message}</p>}
             {!isLoading && !isError && activeCampaigns.length === 0 && (
-              <p className="text-gray-500">No active campaigns available.</p>
+              <AppEmptyState
+                compact
+                eyebrow="No Campaigns Yet"
+                title="There are no active campaigns to review"
+                description="New contributors should still have a clear starting point here. Create a sample campaign, then use recipient import to explore the onboarding workflow."
+                tips={[
+                  'Load sample values in the form to generate realistic test content quickly.',
+                  'Open Help for contributor setup notes, including mock mode and role-aware paths.',
+                ]}
+                actions={[
+                  { onClick: loadSampleCampaign, label: 'Load sample campaign', icon: 'sample' },
+                  { href: '/help', label: 'View help', icon: 'docs', variant: 'secondary' },
+                ]}
+              />
             )}
 
             <div className="space-y-3">

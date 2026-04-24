@@ -1,9 +1,11 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { MapContainer, Marker, Popup, TileLayer, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import { fetchClient } from '@/lib/mock-api/client';
+import { getAppUserRole, isOperationsRole } from '@/lib/app-role';
 
 const DEFAULT_CENTER: [number, number] = [20, 0];
 const DEFAULT_ZOOM = 2;
@@ -129,6 +131,7 @@ function ZoomWatcher({ onZoom }: { onZoom: (zoom: number) => void }) {
 }
 
 export default function AidDistributionMap() {
+  const role = getAppUserRole();
   const [points, setPoints] = useState<AidPackagePoint[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -289,6 +292,31 @@ export default function AidDistributionMap() {
         {error && !loading && (
           <div className="absolute inset-0 flex items-center justify-center bg-white/70 dark:bg-gray-950/70 text-sm text-red-600">
             {error}
+          </div>
+        )}
+        {!loading && !error && points.length === 0 && (
+          <div className="absolute inset-0 flex items-center justify-center bg-white/80 px-6 text-center dark:bg-gray-950/80">
+            <div className="max-w-xl space-y-3">
+              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                Empty Map
+              </p>
+              <h3 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">
+                {isOperationsRole(role) ? 'No distribution points are available yet' : 'No live distribution activity is available yet'}
+              </h3>
+              <p className="text-sm leading-6 text-slate-600 dark:text-slate-300">
+                {isOperationsRole(role)
+                  ? 'Create sample campaign data or enable mocks to populate the map and test cluster, popup, and filter behaviour.'
+                  : 'This map becomes active once aid package data is available. In the meantime, you can explore verification and dashboard flows with sample guidance.'}
+              </p>
+              <div className="flex flex-wrap justify-center gap-3">
+                <Link href={isOperationsRole(role) ? '/campaigns' : '/'} className="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700">
+                  {isOperationsRole(role) ? 'Create sample campaign' : 'Open verification flow'}
+                </Link>
+                <Link href="/help" className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
+                  View help
+                </Link>
+              </div>
+            </div>
           </div>
         )}
       </div>
