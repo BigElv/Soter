@@ -11,6 +11,7 @@ import type {
     VerificationResult,
     VerificationStep,
 } from '@/types/verification';
+import { useActivity } from '@/hooks/useActivity';
 
 /* ─── Accepted image MIME types ─────────────────────────────────────────── */
 
@@ -190,6 +191,7 @@ function initialState(): FlowState {
  */
 export const VerificationFlow: React.FC = () => {
     const uid = useId();
+    const { trackJob } = useActivity();
 
     const [step, setStep] = useState<VerificationStep>('upload');
     const [imageFile, setImageFile] = useState<File | null>(null);
@@ -280,24 +282,31 @@ export const VerificationFlow: React.FC = () => {
 
         let cancelled = false;
 
-        startEvidenceVerification(payload)
-            .then((data) => {
-                if (cancelled) return;
-                setResult(data);
-                setStep('result');
-            })
-            .catch((err: unknown) => {
-                if (cancelled) return;
-                if (err instanceof VerificationApiError) {
-                    setApiError(err.message);
-                } else {
-                    setApiError(
-                        'An unexpected error occurred. Please try again.',
-                    );
-                }
-                pendingPayload.current = null;
-                setStep('upload');
-            });
+        let cancelled = false;
+
+        (async () => {
+          try {
+            const data = await trackJob(
+              'Evidence Verification',
+              'Analyzing submitted evidence for authenticity',
+              () => startEvidenceVerification(payload)
+            );
+            if (cancelled) return;
+            setResult(data);
+            setStep('result');
+          } catch (err) {
+            if (cancelled) return;
+            if (err instanceof VerificationApiError) {
+              setApiError(err.message);
+            } else {
+              setApiError(
+                'An unexpected error occurred. Please try again.',
+              );
+            }
+            pendingPayload.current = null;
+            setStep('upload');
+          }
+        })();
 
         return () => {
             cancelled = true;
