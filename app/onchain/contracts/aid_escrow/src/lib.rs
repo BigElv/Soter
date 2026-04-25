@@ -13,7 +13,10 @@ const KEY_PKG_COUNTER: Symbol = symbol_short!("pkg_cnt");
 const KEY_CONFIG: Symbol = symbol_short!("config");
 const KEY_PKG_IDX: Symbol = symbol_short!("pkg_idx"); // Aggregation index counter
 const KEY_DISTRIBUTORS: Symbol = symbol_short!("dstrbtrs"); // Map<Address, bool>
-const KEY_PAUSED: Symbol = symbol_short!("paused");
+const KEY_PAUSED: Symbol = symbol_short!("paused"); // Legacy global pause
+const KEY_PAUSE_CREATE: Symbol = symbol_short!("p_create"); // Pause create action
+const KEY_PAUSE_CLAIM: Symbol = symbol_short!("p_claim"); // Pause claim action
+const KEY_PAUSE_WITHDRAW: Symbol = symbol_short!("p_withdrw"); // Pause withdraw action
 
 // --- Data Types ---
 
@@ -75,6 +78,9 @@ pub enum Error {
     MismatchedArrays = 12,
     InsufficientSurplus = 13,
     ContractPaused = 14,
+    CreatePaused = 15,
+    ClaimPaused = 16,
+    WithdrawPaused = 17,
 }
 
 // --- Contract Events (indexer-friendly; stable topics & payloads) ---
@@ -168,6 +174,42 @@ pub struct ContractPausedEvent {
 
 #[contractevent]
 pub struct ContractUnpausedEvent {
+    pub admin: Address,
+}
+
+/// Emitted when create action is paused. Actor = admin.
+#[contractevent]
+pub struct CreatePausedEvent {
+    pub admin: Address,
+}
+
+/// Emitted when create action is unpaused. Actor = admin.
+#[contractevent]
+pub struct CreateUnpausedEvent {
+    pub admin: Address,
+}
+
+/// Emitted when claim action is paused. Actor = admin.
+#[contractevent]
+pub struct ClaimPausedEvent {
+    pub admin: Address,
+}
+
+/// Emitted when claim action is unpaused. Actor = admin.
+#[contractevent]
+pub struct ClaimUnpausedEvent {
+    pub admin: Address,
+}
+
+/// Emitted when withdraw action is paused. Actor = admin.
+#[contractevent]
+pub struct WithdrawPausedEvent {
+    pub admin: Address,
+}
+
+/// Emitted when withdraw action is unpaused. Actor = admin.
+#[contractevent]
+pub struct WithdrawUnpausedEvent {
     pub admin: Address,
 }
 
@@ -339,6 +381,102 @@ impl AidEscrow {
         env.storage().instance().get(&KEY_PAUSED).unwrap_or(false)
     }
 
+    /// Admin-only. Pauses package creation.
+    /// While paused, create_package and batch_create_packages are blocked.
+    /// Emits a `CreatePausedEvent`.
+    ///
+    /// # Errors
+    /// Returns `Error::NotAuthorized` if caller is not the admin.
+    pub fn pause_create(env: Env) -> Result<(), Error> {
+        let admin = Self::get_admin(env.clone())?;
+        admin.require_auth();
+        env.storage().instance().set(&KEY_PAUSE_CREATE, &true);
+        CreatePausedEvent { admin }.publish(&env);
+        Ok(())
+    }
+
+    /// Admin-only. Unpauses package creation, resuming normal operation.
+    /// Emits a `CreateUnpausedEvent`.
+    ///
+    /// # Errors
+    /// Returns `Error::NotAuthorized` if caller is not the admin.
+    pub fn unpause_create(env: Env) -> Result<(), Error> {
+        let admin = Self::get_admin(env.clone())?;
+        admin.require_auth();
+        env.storage().instance().set(&KEY_PAUSE_CREATE, &false);
+        CreateUnpausedEvent { admin }.publish(&env);
+        Ok(())
+    }
+
+    /// Returns `true` if package creation is currently paused.
+    pub fn is_create_paused(env: Env) -> bool {
+        env.storage().instance().get(&KEY_PAUSE_CREATE).unwrap_or(false)
+    }
+
+    /// Admin-only. Pauses package claiming.
+    /// While paused, claim is blocked.
+    /// Emits a `ClaimPausedEvent`.
+    ///
+    /// # Errors
+    /// Returns `Error::NotAuthorized` if caller is not the admin.
+    pub fn pause_claim(env: Env) -> Result<(), Error> {
+        let admin = Self::get_admin(env.clone())?;
+        admin.require_auth();
+        env.storage().instance().set(&KEY_PAUSE_CLAIM, &true);
+        ClaimPausedEvent { admin }.publish(&env);
+        Ok(())
+    }
+
+    /// Admin-only. Unpauses package claiming, resuming normal operation.
+    /// Emits a `ClaimUnpausedEvent`.
+    ///
+    /// # Errors
+    /// Returns `Error::NotAuthorized` if caller is not the admin.
+    pub fn unpause_claim(env: Env) -> Result<(), Error> {
+        let admin = Self::get_admin(env.clone())?;
+        admin.require_auth();
+        env.storage().instance().set(&KEY_PAUSE_CLAIM, &false);
+        ClaimUnpausedEvent { admin }.publish(&env);
+        Ok(())
+    }
+
+    /// Returns `true` if package claiming is currently paused.
+    pub fn is_claim_paused(env: Env) -> bool {
+        env.storage().instance().get(&KEY_PAUSE_CLAIM).unwrap_or(false)
+    }
+
+    /// Admin-only. Pauses surplus withdrawal.
+    /// While paused, withdraw_surplus is blocked.
+    /// Emits a `WithdrawPausedEvent`.
+    ///
+    /// # Errors
+    /// Returns `Error::NotAuthorized` if caller is not the admin.
+    pub fn pause_withdraw(env: Env) -> Result<(), Error> {
+        let admin = Self::get_admin(env.clone())?;
+        admin.require_auth();
+        env.storage().instance().set(&KEY_PAUSE_WITHDRAW, &true);
+        WithdrawPausedEvent { admin }.publish(&env);
+        Ok(())
+    }
+
+    /// Admin-only. Unpauses surplus withdrawal, resuming normal operation.
+    /// Emits a `WithdrawUnpausedEvent`.
+    ///
+    /// # Errors
+    /// Returns `Error::NotAuthorized` if caller is not the admin.
+    pub fn unpause_withdraw(env: Env) -> Result<(), Error> {
+        let admin = Self::get_admin(env.clone())?;
+        admin.require_auth();
+        env.storage().instance().set(&KEY_PAUSE_WITHDRAW, &false);
+        WithdrawUnpausedEvent { admin }.publish(&env);
+        Ok(())
+    }
+
+    /// Returns `true` if surplus withdrawal is currently paused.
+    pub fn is_withdraw_paused(env: Env) -> bool {
+        env.storage().instance().get(&KEY_PAUSE_WITHDRAW).unwrap_or(false)
+    }
+
     /// Returns the current contract configuration.
     /// Falls back to defaults (`min_amount: 1`, `max_expires_in: 0`, empty token list)
     /// if no config has been explicitly set.
@@ -389,6 +527,7 @@ impl AidEscrow {
         expires_at: u64,
     ) -> Result<u64, Error> {
         Self::check_paused(&env)?;
+        Self::check_create_paused(&env)?;
         Self::require_admin_or_distributor(&env, &operator)?;
         let config = Self::get_config(env.clone());
 
@@ -486,6 +625,7 @@ impl AidEscrow {
         expires_in: u64,
     ) -> Result<Vec<u64>, Error> {
         Self::check_paused(&env)?;
+        Self::check_create_paused(&env)?;
         Self::require_admin_or_distributor(&env, &operator)?;
 
         // Validate array lengths match
@@ -591,6 +731,7 @@ impl AidEscrow {
     /// Recipient claims the package.
     pub fn claim(env: Env, id: u64) -> Result<(), Error> {
         Self::check_paused(&env)?;
+        Self::check_claim_paused(&env)?;
         let key = (symbol_short!("pkg"), id);
         let mut package: Package = env
             .storage()
@@ -905,6 +1046,9 @@ impl AidEscrow {
         let admin = Self::get_admin(env.clone())?;
         admin.require_auth();
 
+        // 1.5. Check if withdraw is paused
+        Self::check_withdraw_paused(&env)?;
+
         // 2. Validate amount
         if amount <= 0 {
             return Err(Error::InvalidAmount);
@@ -947,6 +1091,27 @@ impl AidEscrow {
     fn check_paused(env: &Env) -> Result<(), Error> {
         if env.storage().instance().get(&KEY_PAUSED).unwrap_or(false) {
             return Err(Error::ContractPaused);
+        }
+        Ok(())
+    }
+
+    fn check_create_paused(env: &Env) -> Result<(), Error> {
+        if env.storage().instance().get(&KEY_PAUSE_CREATE).unwrap_or(false) {
+            return Err(Error::CreatePaused);
+        }
+        Ok(())
+    }
+
+    fn check_claim_paused(env: &Env) -> Result<(), Error> {
+        if env.storage().instance().get(&KEY_PAUSE_CLAIM).unwrap_or(false) {
+            return Err(Error::ClaimPaused);
+        }
+        Ok(())
+    }
+
+    fn check_withdraw_paused(env: &Env) -> Result<(), Error> {
+        if env.storage().instance().get(&KEY_PAUSE_WITHDRAW).unwrap_or(false) {
+            return Err(Error::WithdrawPaused);
         }
         Ok(())
     }
